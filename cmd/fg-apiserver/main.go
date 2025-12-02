@@ -8,11 +8,9 @@ import (
 )
 
 func main() {
-	command := app.NewCloudTestGoCommand()
+	command := app.NewCloudTestGOCommand()
 
 	if err := command.Execute(); err != nil {
 		os.Exit(1)
 	}
 }
-
-
