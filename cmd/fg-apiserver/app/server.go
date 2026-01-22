@@ -1,6 +1,10 @@
 package app
 
 import (
+	"io"
+	"log/slog"
+	"os"
+
 	"github.com/RadishXZ/cloudtest/cmd/fg-apiserver/app/options"
 	"github.com/RadishXZ/cloudtest/pkg/version"
 	"github.com/spf13/cobra"
@@ -55,5 +59,59 @@ func run (opts *options.ServerOptions) error {
 
 	version.PrintAndExitIfRequested()
 
+	initLog()
+
 	return server.Run()
+}
+
+func initLog() {
+	format := viper.GetString("log.format")
+	level := viper.GetString("log.level")
+	output := viper.GetString("log.output")
+
+	var slevel slog.Level
+	switch level {
+	case "debug":
+		slevel = slog.LevelDebug
+	case "info":
+		slevel = slog.LevelInfo
+	case "warn":
+		slevel = slog.LevelWarn
+	case "error":
+		slevel = slog.LevelError
+	default:
+		slevel = slog.LevelInfo
+	}
+
+	opts := &slog.HandlerOptions{Level: slevel}
+
+	var w io.Writer
+	var err error
+	switch output {
+	case "":
+		w = os.Stdout
+	case "stdout":
+		w = os.Stdout
+	default:
+		w, err = os.OpenFile(output, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	if err != nil {
+		return
+	}
+
+	var handler slog.Handler
+	switch format {
+	case "json":
+		handler = slog.NewJSONHandler(w, opts)
+	case "text":
+		handler = slog.NewTextHandler(w, opts)
+	default:
+		handler = slog.NewJSONHandler(w, opts)
+	}
+
+	slog.SetDefault(slog.New(handler))
 }
